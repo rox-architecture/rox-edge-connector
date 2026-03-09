@@ -727,7 +727,7 @@ async def composite_kit_execution_blocking(canvas, root_metadata):
 
             # download action
             if action == 'download':
-                print("f'Download: {kit_name}")
+                print(f'Download: {kit_name}')
                 success, _ = await http_transfer(kit, policy, metadata, save_to_file=True, prefix=root_metadata['folder_name'])
             else: # TODO: implement other two actions: read and send-to 
                 print("currently we don't have the other actions implementation")
