@@ -6,3 +6,7 @@ __pycache__
 *.key
 KIT-Workspace/
 notebook.ipynb
+snippets.txt
+
+.env.tsi
+.env.dlr

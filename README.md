@@ -4,51 +4,45 @@
 - Ensure that your input data are correctly provided in the KIT format.
 - Automate cumbersome interactions with the dataspace for you.
 
-Technically, `Edge-Connector` is not strictly required in your system, if your application system handles the data format checking and interaction with the dataspace server (where individual user connectors are running).
+## Docker setup
 
-However, using `Edge-Connector` will allow the separation of logics between dataspace management and your system.
+For DLR dataspace, get the certificates first before setting up the docker image. 
 
-## To Run
-
-For Windows:
+Create the docker image:
 ```bash
-python3 -m venv .venv
-.venv/Scripts/activate
+docker build -t edge-connector .
 ```
 
-For Linux systems (Ubuntu, WSL, etc.):
+Run:
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+docker run --rm -it \
+  -p 8001:8001 \
+  -v "$(pwd):/app" \
+  edge-connector
 ```
 
-Then, 
-```bash
-pip install -r requirements.txt
-python main.py
-```
+**python 3.12** is used.
 
-**python 3.10+** is used.
+### Notes:
+- Access `http://localhost:8001/` to see a welcome message.
+- Access `http://localhost:8001/livecheck` to see if the dataspace access is working fine.
+    - If not working, follow the DLR dataspace setup in the below section.
+    - If not working, follow the T-System dataspace setup in the below section.
+- You can also check `http://localhost:8001/docs` for API references.
 
-To check, access `http://localhost:8001/` in your browser. You should see a welcome message.
-You can also check `http://localhost:8001/docs` for API references.
+## DLR dataspace
 
-## Providing your certificates
+To access DLR dataspace, certificate files are needed.
 
-`Edge-Connector` need your dataspace user certificate files in the working directory.
-This can be done by using the `KIT GUI` frontend or manually. 
+1. Go to [https://vision-x-dataspace.base-x-ecosystem.org/](https://vision-x-dataspace.base-x-ecosystem.org/) and login.
 
-How to use the frontend is explained in the `KIT GUI` repository (https://github.com/rox-architecture/rox-kit-gui).
+2. Download the certificate files (*tls.crt* and *tls.key* files) and locate them in the edge-connector root location (e.g., where `main.py` is located).
 
-For doing it manually, go to [https://vision-x-dataspace.base-x-ecosystem.org/](https://vision-x-dataspace.base-x-ecosystem.org/) and login.
-Then download the certificate by clicking the button on the top-right menu. We will need `tls.crt` and `tls.key` files.
-Place them in the `Edge-Connector` directory (i.e., next to the main.py file).
+3. Check that in the `.env` file, *CONNECTOR_NAME* is set correctly with your connector name.
 
-Then, you need to set your connector name in `.env` file. 
-For example, `CONNECTOR_NAME=jin-conn`, replace `jin-conn` with your connector name.
+4. Access http://localhost:8001/livecheck to see if you can access DLR dataspace (you should see a token)
 
-To check everything works good, access http://localhost:8001/livecheck in your browser.
-If you see a token value, then it means working good.
+## T-System dataspace
 
 # Resources
 
