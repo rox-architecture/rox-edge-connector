@@ -282,16 +282,16 @@ async def get_catalog(provider_id, connector_url, kit_name = None):
 
     payload = {
         "@context": {
-            "@vocab": "https://w3id.org/edc/v0.0.1/ns/"
+            #"@vocab": "https://w3id.org/edc/v0.0.1/ns/"
         },
-        "@type": "CatalogRequest",
+        #"@type": "CatalogRequest",
         "counterPartyAddress": connector_url,
         "counterPartyId": provider_id,
         "protocol": "dataspace-protocol-http:2025-1",
         "additionalScopes": [],
         "querySpec": {
             "offset": 0,
-            "limit": 100,
+            "limit": 1000,
             "sortOrder": "DESC",
             "sortField": "fieldName",
             "filterExpression": []
@@ -312,6 +312,7 @@ async def get_catalog(provider_id, connector_url, kit_name = None):
         kit = [d for d in dataset if "edc:kit_type" in d]
     catalog = response.json()
     catalog['dataset'] = kit
+    
     return catalog
 
 
@@ -342,7 +343,7 @@ async def create_http_negotiation(connector_url, policy, bpn, asset_id, token_he
     url = os.getenv("EDR_NEGOTIATION_URL")
     payload = {
         "@context": {
-            "odrl": "http://www.w3.org/ns/odrl/2/"
+            "odrl": "http://www.w3.org/ns/odrl/2/",
         },
         "counterPartyAddress": connector_url,
         "protocol": "dataspace-protocol-http",
@@ -730,8 +731,6 @@ async def composite_kit_execution_blocking(canvas, root_metadata):
             # We skip nested composite KITs until the nesting depth is restricted or handled properly
             if kit_type != "basic":
                 continue
-
-            print(f'----Catalog-----\n{metadata}')
 
             # download action
             if action == 'download':
