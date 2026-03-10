@@ -271,7 +271,7 @@ async def get_target_offer_by_id(provider_id, asset_id):
             # add additional useful information
             asset['participantId'] = participantId
             asset['originator'] = originator
-            asset['policy'] = asset['odrl:hasPolicy']
+            asset['hasPolicy'] = asset['odrl:hasPolicy']
             return asset
     # if not found
     return {}
@@ -399,9 +399,11 @@ async def http_transfer(request_data, policy, metadata, save_to_file=True, prefi
     payload = request_data['request_body'] if 'request_body' in request_data else None
 
     # Search for an existing EDR negotiation id
-    print(f"Target asset to download: {asset_id}")
+    print(f"HTTP Transfer information: {token_header}, {asset_id}, {connector_url}, {bpn}, {payload}")
     endpoint, token = await get_transfer_credentials(asset_id, token_header)
     print(f'endpoint: {endpoint}')
+
+    print(f'-----------\n{policy}')
 
     retry_count = 2
     while endpoint == None:
@@ -409,7 +411,7 @@ async def http_transfer(request_data, policy, metadata, save_to_file=True, prefi
         negotiation_id = await create_http_negotiation(connector_url, policy, bpn, asset_id, token_header)
         await asyncio.sleep(5) # we need around 10 seconds to wait before the agreement id is generated
         endpoint, token = await get_transfer_credentials(asset_id, token_header)
-        print(f'retry count: {retry_count}, {endpoint}')
+        print(f'{retry_count} retry count left for: {endpoint}')
         retry_count -= 1
         if retry_count == 0:
             break
@@ -442,27 +444,30 @@ async def http_transfer(request_data, policy, metadata, save_to_file=True, prefi
     if 'kit_type' in metadata and metadata['kit_type'].casefold() == 'composite':
         filename = 'canvas' # this file has nos suffix as it can either be a JSON or ZIP file
     elif 'default_file_name' in metadata:
+        print("------------------------------------here-------------------------------------------------------------")
         filename = metadata['default_file_name']
-    else: # if not, then check if the provider provide content-disposition header
-        name_string = response.headers.get('Content-Disposition')
-        if name_string:
-            # handle the case of "filename*=" using regex
-            m = re.search(r"filename\*\s*=\s*([^;]+)", name_string, flags=re.IGNORECASE)
-            if m:
-                value = m.group(1).strip().strip('"')
-                if "''" in value:
-                    _, encoded = value.split("''", 1)
-                    filename = unquote(encoded)
-                else:
-                    filename = value
-            else:
-                m = re.search(r"filename\s*=\s*([^;]+)", name_string, flags=re.IGNORECASE)
-                if m:
-                    filename = m.group(1).strip().strip('"')
+    # elif: # if not, then check if the provider provide content-disposition header
         # TODO: we can also generate file name based on the content-type
-    
-    # if file name is NOT given, we use the asset id as the file name
-    filename = asset_id    
+        # name_string = response.headers.get('Content-Disposition')
+        # if name_string:
+        #     # handle the case of "filename*=" using regex
+        #     m = re.search(r"filename\*\s*=\s*([^;]+)", name_string, flags=re.IGNORECASE)
+        #     if m:
+        #         value = m.group(1).strip().strip('"')
+        #         if "''" in value:
+        #             _, encoded = value.split("''", 1)
+        #             filename = unquote(encoded)
+        #         else:
+        #             filename = value
+        #     else:
+        #         m = re.search(r"filename\s*=\s*([^;]+)", name_string, flags=re.IGNORECASE)
+        #         if m:
+        #             filename = m.group(1).strip().strip('"')
+
+    else: 
+        # if file name is NOT given, we use the asset id as the file name
+        filename = asset_id
+     
     kit_folder = workspace / prefix / f'{bpn}-{asset_id}'
     file_path = kit_folder / filename
 
@@ -709,21 +714,24 @@ async def composite_kit_execution_blocking(canvas, root_metadata):
             connector_url = kit['connector_url']
             action = kit['action']
 
-            catalog = await get_catalog(provider_id, connector_url, kit_name)
-            metadata_edc = catalog['dataset'][0] # always the first item in the dataset list
-            metadata = { # some fields has "edc:" prefix in the key to be removed
-                (k[4:] if k.startswith("edc:") else k): v
-                for k, v in metadata_edc.items()
-            }
+            # TODO: below code is proper way of getting the catalog but current policy cannot be extracted for negotiation
+            # catalog = await get_catalog(provider_id, connector_url, kit_name)
+            # metadata_edc = catalog['dataset'][0] # always the first item in the dataset list
+            # metadata = { # some fields has "edc:" prefix in the key to be removed
+            #     (k[4:] if k.startswith("edc:") else k): v
+            #     for k, v in metadata_edc.items()
+            # }
+            metadata = await get_target_offer_by_id(provider_id, kit_name)
 
             # extract the policy
             kit_type = metadata['kit_type']
             policy = metadata['hasPolicy'][0] # TODO: for now we always use the first policy
-            
             # TODO: for now, we ignore the nested composite KIT due to infinite nesting possibility
             # We skip nested composite KITs until the nesting depth is restricted or handled properly
             if kit_type != "basic":
                 continue
+
+            print(f'----Catalog-----\n{metadata}')
 
             # download action
             if action == 'download':
