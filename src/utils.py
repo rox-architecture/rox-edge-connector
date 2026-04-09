@@ -241,7 +241,7 @@ async def delete_contract(id):
 # return the federated catalog
 async def get_federated_catalog():
     url = os.getenv("FEDERATED_CAT_URL") 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:  # increased timeout for slow catalogue fetch
         print(f"Dataspace API triggered: {url}")
         response = await client.get(url)
         response.raise_for_status()
